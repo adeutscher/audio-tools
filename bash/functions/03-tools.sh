@@ -10,7 +10,7 @@ if [ -n "$soundToolsDir" ]; then
             return 1
         fi
 
-        update-svn-repo "$soundToolsDir" "sound tools"
+        update-repo "$soundToolsDir" "sound tools"
 
         # Confirm the permissions on the module directory
         #     Do this whether or not the SVN update actually succeeded.
