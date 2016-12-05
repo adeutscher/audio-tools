@@ -4,7 +4,7 @@ if qtype battery-short; then
         # Watch until battery power drops below a certain threshold.
         local threshold=${1:-15}
 
-        if ! __pgrep "^\d*$" <<< "$threshold" || [ "$threshold" -lt 1 ] || [ "$threshold" -gt 100 ]; then
+        if ! grep -qP "^\d*$" <<< "$threshold" || [ "$threshold" -lt 1 ] || [ "$threshold" -gt 100 ]; then
             error "Threshold must be an integer between 1 and 100 inclusive."
         fi
 
@@ -34,7 +34,7 @@ if qtype battery-short; then
         # Watch until our battery charges above a certain threshold.
         local threshold=${1:-90}
 
-        if ! __pgrep "^\d*$" <<< "$threshold" || [ "$threshold" -lt 1 ] || [ "$threshold" -gt 100 ]; then
+        if ! grep -qP "^\d*$" <<< "$threshold" || [ "$threshold" -lt 1 ] || [ "$threshold" -gt 100 ]; then
             error "Threshold must be an integer between 1 and 100 inclusive."
         fi
 
