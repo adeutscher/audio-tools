@@ -9,7 +9,7 @@ if [ -d "$soundToolsDir/bash/functions" ]; then
 fi
     
 # Load in host-specific definitions, if any exist.
-if [ -f "$soundToolsDir/bash/functions/hosts/$HOSTNAME.sh" ]; then
-    . "$soundToolsDir/bash/functions/hosts/$HOSTNAME.sh"
+if [ -f "$soundToolsDir/bash/functions/hosts/${HOSTNAME%-*}.sh" ]; then
+    . "$soundToolsDir/bash/functions/hosts/${HOSTNAME%-*}.sh"
 fi
 
