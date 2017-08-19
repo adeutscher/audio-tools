@@ -12,7 +12,7 @@ watch-connections-alert(){
     error "No port number specified."
     return 1
   elif ! grep -Pq "^\d+$" <<< "$target_port" || [ "$target_port" -ge 65536 ] || [ "$target_port" -le 0 ]; then
-	  error "$(printf "Invalid port: ${Colour_Bold}%s${Colour_Off}" "$target_port")"
+    error "$(printf "Invalid port: ${Colour_Bold}%s${Colour_Off}" "$target_port")"
     return 1
   fi
 
