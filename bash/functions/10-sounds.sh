@@ -1,11 +1,6 @@
 
 if qtype mpg123; then
 
-  for soundFile in $(find "$soundToolsDir/files" -type f -name '*mp3' 2> /dev/null); do
-    alias sound-$(basename "${soundFile%.*}")="mpg123 -q '$soundFile'"
-  done
-  unset soundFile # Axe loop variable
-
   random-sound(){
     # Notes:
     #   An alias cannot be run as a stored value in a variable.
