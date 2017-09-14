@@ -21,6 +21,7 @@ mkdir -p "$binDir"
 
 count=0
 while read __file; do
+    [ -z "$__file" ] && continue
     # Create a symbolic link to play script.
     # The script will deduce the filename from the $0 variable.
     if ln -s "../scripts/play-sound.sh" "$binDir/sound-$(basename "${__file%.*}")" 2> /dev/null; then
@@ -29,4 +30,14 @@ while read __file; do
     fi
 done <<< "$(find "$soundsDir" -type f -name '*mp3' 2> /dev/null)"
 
+removedCount=0
+while read __file; do
+    [ -z "$__file" ] && continue
+    rm "$__file"
+    removedCount="$(($removedCount+1))"
+done <<< "$(find "$soundsDir" -xtype l)"
+
 printf 'Created %d new symbolic links.\n' "$count"
+if (( "$removedCount" )); then
+    printf 'Removed %d dead symbolic links.\n' "$removedCount"
+fi
