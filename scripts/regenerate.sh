@@ -6,11 +6,11 @@
 # My original system was to make an alias for each sound file.
 # This was very time-consuming (~300ms to the 1ms times of other files).
 
-soundsDir="$soundToolsDir/files"
-binDir="$soundToolsDir/bin"
+soundsDir="$audioToolsDir/files"
+binDir="$audioToolsDir/bin"
 
-if [ -z "$soundToolsDir" ]; then
-    printf "Sound tools not defined (soundToolsDir variable).\n" >&2
+if [ -z "$audioToolsDir" ]; then
+    printf "Sound tools not defined (audioToolsDir variable).\n" >&2
     exit 1
 elif [ ! -d "$soundsDir" ]; then
     printf "Sound directory not found: %s\n" "$soundsDir" >&2

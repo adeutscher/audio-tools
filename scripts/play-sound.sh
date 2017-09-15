@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Deduce filename in $soundToolsDir/files
+# Deduce filename in $audioToolsDir/files
 #   out of $0 and play sound with mpg123
 
 if ! type mpg123 2> /dev/null >&2; then
@@ -12,7 +12,7 @@ elif [ ! -L "$0" ]; then
     exit 1
 fi
 
-soundDir="$soundToolsDir/files"
+soundDir="$audioToolsDir/files"
 __filename="$(sed 's/sound-//' <<< "$(basename "$0")").mp3"
 __file="$(find "$soundDir" -name "$__filename")"
 

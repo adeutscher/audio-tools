@@ -1,21 +1,21 @@
 
-if [ -n "$soundToolsDir" ]; then
+if [ -n "$audioToolsDir" ]; then
 
-    update-tools-sound(){
+    update-tools-audio(){
 
-        # Make sure that some joker didn't go and unset the soundToolsDir 
+        # Make sure that some joker didn't go and unset the audioToolsDir 
         #     variable after this function was defined.
-        if [ -z "$soundToolsDir" ]; then
-            error 'Sound tools directory is unknown! It should be recorded in the $soundToolsDir variable.'
+        if [ -z "$audioToolsDir" ]; then
+            error 'Audio tools directory is unknown! It should be recorded in the $audioToolsDir variable.'
             return 1
         fi
 
-        update-repo "$soundToolsDir" "sound tools"
+        update-repo "$audioToolsDir" "sound tools"
 
         # Confirm the permissions on the module directory
         #     Do this whether or not the SVN update actually succeeded.
-        chmod 700 "$soundToolsDir"
+        chmod 700 "$audioToolsDir"
 
     }
 
-fi # end soundToolsDir check
+fi # end audioToolsDir check

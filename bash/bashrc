@@ -1,15 +1,15 @@
 
-export soundToolsDir="${__current_module_dir:-$HOME/tools/sound-tools}"
+export audioToolsDir="${__current_module_dir:-$HOME/tools/sound-tools}"
 
-if [ -d "$soundToolsDir/bash/functions" ]; then
-    for functionFile in $soundToolsDir/bash/functions/*sh; do
+if [ -d "$audioToolsDir/bash/functions" ]; then
+    for functionFile in $audioToolsDir/bash/functions/*sh; do
         # Note: Sourcing in one line by wildcard wouldn't work.
         . "$functionFile"
     done
 fi
     
 # Load in host-specific definitions, if any exist.
-if [ -f "$soundToolsDir/bash/functions/hosts/${HOSTNAME%-*}.sh" ]; then
-    . "$soundToolsDir/bash/functions/hosts/${HOSTNAME%-*}.sh"
+if [ -f "$audioToolsDir/bash/functions/hosts/${HOSTNAME%-*}.sh" ]; then
+    . "$audioToolsDir/bash/functions/hosts/${HOSTNAME%-*}.sh"
 fi
 
