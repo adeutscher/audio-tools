@@ -31,13 +31,30 @@ while read __file; do
 done <<< "$(find "$soundsDir" -type f -name '*mp3' 2> /dev/null)"
 
 removedCount=0
+# Read dead symbolic links
 while read __file; do
     [ -z "$__file" ] && continue
     rm "$__file"
     removedCount="$(($removedCount+1))"
-done <<< "$(find "$soundsDir" -xtype l)"
+done <<< "$(find "$audioToolsDir" -xtype l)"
+
+removedSoundCount=0
+# Read links to no-longer-present sounds.
+while read __file; do
+    [ -z "$__file" ] && continue
+    __filename="$(sed 's/sound-//' <<< "$(basename "$__file")").mp3"
+    __filepath="$(find "$soundsDir" -name "$__filename" | head -n1)"
+    if [ -z "$__filepath" ]; then
+        printf "Removing link to missing sound: %s\n" "$__file"
+	rm "$__file"
+        removedSoundCount="$(($removedSoundCount+1))"
+    fi
+done <<< "$(find "$binDir" -type l)"
 
 printf 'Created %d new symbolic links.\n' "$count"
 if (( "$removedCount" )); then
     printf 'Removed %d dead symbolic links.\n' "$removedCount"
+fi
+if (( "$removedSoundCount" )); then
+    printf 'Removed %d missing sound links.\n' "$removedSoundCount"
 fi
