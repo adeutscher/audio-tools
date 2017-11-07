@@ -12,9 +12,9 @@ elif [ ! -L "$0" ]; then
     exit 1
 fi
 
-soundDir="$audioToolsDir/files"
+soundDir="${audioToolsDir:-"$(readlink -f "$(dirname "$0")/..")"}/files"
 __filename="$(sed 's/sound-//' <<< "$(basename "$0")").mp3"
-__file="$(find "$soundDir" -name "$__filename")"
+__file="$(find "$soundDir" -name "$__filename" 2> /dev/null)"
 
 if [ -z "$__file" ]; then
     printf 'Unable to find %s in %s\n' "$__filename" "$soundDir"
