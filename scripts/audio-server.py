@@ -53,7 +53,8 @@ def clientthread(conn, addr):
             conn.close()
             return
 
-        command = re.sub(r"\n.{0,}", "", data) # Lop off everything after the first newline.
+        # Lop off trailing '.mp3' extension, and everything after the first newline.
+        command = re.sub(r"(\.mp3)?\n.{0,}", "", data, flags=re.IGNORECASE)
         reply = ""
         if command == "list":
             l = SOUNDS[0].keys()
