@@ -129,8 +129,9 @@ class NetAccess:
                         allowed = True
                         break
 
-        if len(self.denied_addresses) or len(self.denied_networks):
+        if allowed and len(self.denied_addresses) or len(self.denied_networks):
             # Blacklist processing. A blacklist argument one-ups a whitelist argument in the event of a conflict
+            # Do not bother to check the blacklist if the address is already denied.
 
             if address in [a[2] for a in self.denied_addresses]:
                 allowed = False
@@ -250,40 +251,9 @@ def main():
             conn, addr = sockobj.accept()
         except KeyboardInterrupt:
             break
-        print 'Connected with %s%s:%d%s' % (COLOUR_GREEN, addr[0], addr[1], COLOUR_OFF),
 
-        # Blacklist/Whitelist filtering
-        allowed = True
-
-        if len(args["allowed_addresses"]) or len(args["allowed_networks"]):
-            # Whitelist processing, address is not allowed until it is cleared.
-            allowed = False
-
-            if addr[0] in [a[2] for a in args["allowed_addresses"]]:
-                allowed = True
-            else:
-                # Try checking allowed networks
-                cn = ip_strton(addr[0])
-                for n in [n[0] for n in args["allowed_networks"]]:
-                    if ip_addrn_in_network(cn, n):
-                        allowed = True
-                        break
-
-        if len(args["denied_addresses"]) or len(args["denied_networks"]):
-            # Blacklist processing. A blacklist argument one-ups a whitelist argument in the event of a conflict
-
-            if addr[0] in [a[2] for a in args["denied_addresses"]]:
-                allowed = False
-            else:
-                # Try checking denied networks
-                cn = ip_strton(addr[0])
-                for n in [n[0] for n in args["denied_networks"]]:
-                    if ip_addrn_in_network(cn, n):
-                        allowed = False
-                        break
-
-        if not allowed:
-            print "(Denied)"
+        if not access.is_allowed(addr[0]):
+            print 'Connection from %s%s:%d%s (%s%s%s)' % (COLOUR_GREEN, addr[0], addr[1], COLOUR_OFF, COLOUR_RED, "Denied", COLOUR_OFF)
             conn.close()
             continue
         else:
@@ -296,7 +266,7 @@ def main():
     sockobj.close()
 
 def process_arguments():
-    args = {"denied_addresses":[], "denied_networks":[],"allowed_addresses":[], "allowed_networks":[]}
+    args = {}
     error = False
     errors = []
     global access
