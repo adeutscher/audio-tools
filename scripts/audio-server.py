@@ -256,9 +256,6 @@ def main():
             print 'Connection from %s%s:%d%s (%s%s%s)' % (COLOUR_GREEN, addr[0], addr[1], COLOUR_OFF, COLOUR_RED, "Denied", COLOUR_OFF)
             conn.close()
             continue
-        else:
-            print "" # Finish connection announcement line
-
 
         # Spawn new thread and pass it the new socket object
         thread.start_new_thread(clientthread ,(conn,addr))
