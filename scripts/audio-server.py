@@ -5,7 +5,7 @@
     The intent was to easily play a sound using only netcat as a client.
 '''
 
-import getopt, os, re, socket, struct, subprocess, sys, thread
+import getopt, os, random, re, socket, struct, subprocess, sys, thread
 
 DEFAULT_AUDIO_PORT = 4321
 SOUNDS = [{},{}]
@@ -169,16 +169,23 @@ def clientthread(conn, addr):
             print "Client %s%s:%d%s requested a listing." % (COLOUR_GREEN, addr[0], addr[1], COLOUR_OFF)
         else:
             path = ""
+            if command == "random":
+                key = random.choice(SOUNDS[0].keys())
+                path = SOUNDS[0][key]
             if command in SOUNDS[0]:
                 path = SOUNDS[0][command]
             elif command in SOUNDS[1]:
                 path = SOUNDS[1][command]
 
-            printout = "Client %s%s:%d%s requested %s%s%s sound (%s%s%s)" % (COLOUR_GREEN, addr[0], addr[1], COLOUR_OFF, COLOUR_BOLD, command, COLOUR_OFF, COLOUR_GREEN, path, COLOUR_OFF)
+            if command == "random":
+                printout = "Client %s%s:%d%s requested a random sound. Choice: %s%s%s " % (COLOUR_GREEN, addr[0], addr[1], COLOUR_OFF, COLOUR_BOLD, key, COLOUR_OFF)
+            else:
+                printout = "Client %s%s:%d%s requested %s%s%s sound " % (COLOUR_GREEN, addr[0], addr[1], COLOUR_OFF, COLOUR_BOLD, command, COLOUR_OFF)
             found = False
             if path:
                 found = True
                 reply = "played\n"
+                printout += "(%s%s%s)" % (COLOUR_GREEN, path, COLOUR_OFF)
             else:
                 reply = "not-found\n"
                 printout += "(%s%s%s)" % (COLOUR_RED, "Not found", COLOUR_OFF)
@@ -187,6 +194,8 @@ def clientthread(conn, addr):
             if found:
                 p = subprocess.Popen(["mpg123", "-q", path])
                 p.communicate()
+    except OSError:
+        reply = "play-error\n"
     except socket.timeout:
         reply = "timeout\n"
 
