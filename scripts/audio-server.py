@@ -174,6 +174,93 @@ def clientthread(conn, addr):
             conn.close()
             return
 
+        reply = play_sound(data, addr)
+    except socket.timeout:
+        reply = "timeout\n"
+
+    conn.sendall(reply)
+    conn.close()
+
+def find_mp3_files(path):
+    global SOUNDS
+    for root, dirs, files in os.walk(path):
+        for name in files:
+            if name.endswith(".mp3"):
+                s = name.split(".")
+                SOUNDS[0][".".join(s[0:len(s)-1])] = os.path.join(root, name)
+                SOUNDS[1]["sound-" + ".".join(s[0:len(s)-1])] = os.path.join(root, name) # Super-lazy double-index for "sound-" prefix.
+
+def hexit(exit_code):
+    print "%s [-a allow-address/range] [-A allow-list-file] [-b bind-address] [-d deny-address/range] [-D deny-list-file] [-h] [-p port]" % os.path.basename(sys.argv[0])
+    exit(exit_code)
+
+def main():
+
+    err, args = process_arguments()
+    if err:
+        exit(1)
+
+    directory = os.path.realpath(args.get("dir", os.environ.get("audioToolsDir") + "/files"))
+
+    global SOUNDS
+    find_mp3_files(directory)
+    if not len(SOUNDS[0]):
+        print "No MP3 files found in %s%s%s..." % (COLOUR_GREEN, directory, COLOUR_OFF)
+        exit(1)
+
+    udpMode = args.get("udp", False)
+
+    # Print a summary of directory/bind options.
+    if udpMode:
+        phrasing = "datagrams"
+    else:
+        phrasing = "connections"
+
+    # Print a summary of directory/bind options.
+    print "Serving %s%d%s sounds from %s%s%s to client %s on %s%s:%d%s" % (COLOUR_BOLD, len(SOUNDS[0]), COLOUR_OFF, COLOUR_GREEN, directory, COLOUR_OFF, phrasing, COLOUR_GREEN, args.get("bind", "0.0.0.0"), args.get("port", DEFAULT_AUDIO_PORT), COLOUR_OFF)
+
+    if udpMode:
+        sockobj = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    else:
+        sockobj = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    # Bind socket to local host and port
+    try:
+        sockobj.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sockobj.bind((args.get("bind", "0.0.0.0"), args.get("port", DEFAULT_AUDIO_PORT)))
+    except socket.error as msg:
+        print 'Bind failed. Error Code : ' + str(msg[0]) + ' Message ' + msg[1]
+        exit(1)
+
+    if not udpMode:
+        sockobj.listen(10)
+
+    # Keep accepting new client information
+    try:
+        while True:
+            if udpMode:
+                data, addr = sockobj.recvfrom(1024)
+            else:
+                conn, addr = sockobj.accept()
+
+            if not access.is_allowed(addr[0]):
+                print 'Connection from %s%s:%d%s (%s%s%s)' % (COLOUR_GREEN, addr[0], addr[1], COLOUR_OFF, COLOUR_RED, "Denied", COLOUR_OFF)
+                if not udpMode:
+                    conn.close()
+                continue
+
+            # Spawn new thread and perform action.
+            if udpMode:
+                thread.start_new_thread(play_sound,(data,addr))
+            else:
+                thread.start_new_thread(clientthread,(conn,addr))
+
+    except KeyboardInterrupt:
+        pass
+    sockobj.close()
+
+def play_sound(data, addr):
+    try:
         # Lop off trailing '.mp3' extension, and everything after the first newline.
         command = re.sub(r"(\.mp3)?\n.{0,}", "", data, flags=re.IGNORECASE)
         reply = ""
@@ -212,70 +299,8 @@ def clientthread(conn, addr):
                 p.communicate()
     except OSError:
         reply = "play-error\n"
-    except socket.timeout:
-        reply = "timeout\n"
 
-    conn.sendall(reply)
-    conn.close()
-
-def find_mp3_files(path):
-    global SOUNDS
-    for root, dirs, files in os.walk(path):
-        for name in files:
-            if name.endswith(".mp3"):
-                s = name.split(".")
-                SOUNDS[0][".".join(s[0:len(s)-1])] = os.path.join(root, name)
-                SOUNDS[1]["sound-" + ".".join(s[0:len(s)-1])] = os.path.join(root, name) # Super-lazy double-index for "sound-" prefix.
-
-def hexit(exit_code):
-    print "%s [-a allow-address/range] [-A allow-list-file] [-b bind-address] [-d deny-address/range] [-D deny-list-file] [-h] [-p port]" % os.path.basename(sys.argv[0])
-    exit(exit_code)
-
-def main():
-
-    err, args = process_arguments()
-    if err:
-        exit(1)
-
-    directory = os.path.realpath(args.get("dir", os.environ.get("audioToolsDir") + "/files"))
-
-    global SOUNDS
-    find_mp3_files(directory)
-    if not len(SOUNDS[0]):
-        print "No MP3 files found in %s%s%s..." % (COLOUR_GREEN, directory, COLOUR_OFF)
-        exit(1)
-
-    # Print a summary of directory/bind options.
-    print "Serving %s%d%s sounds from %s%s%s on %s%s:%d%s" % (COLOUR_BOLD, len(SOUNDS[0]), COLOUR_OFF, COLOUR_GREEN, directory, COLOUR_OFF, COLOUR_GREEN, args.get("bind", "0.0.0.0"), args.get("port", DEFAULT_AUDIO_PORT), COLOUR_OFF)
-
-    sockobj = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    # Bind socket to local host and port
-    try:
-        sockobj.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sockobj.bind((args.get("bind", "0.0.0.0"), args.get("port", DEFAULT_AUDIO_PORT)))
-    except socket.error as msg:
-        print 'Bind failed. Error Code : ' + str(msg[0]) + ' Message ' + msg[1]
-        exit(1)
-
-    sockobj.listen(10)
-
-    # Keep accepting new connections
-    while True:
-        try:
-            conn, addr = sockobj.accept()
-        except KeyboardInterrupt:
-            break
-
-        if not access.is_allowed(addr[0]):
-            print 'Connection from %s%s:%d%s (%s%s%s)' % (COLOUR_GREEN, addr[0], addr[1], COLOUR_OFF, COLOUR_RED, "Denied", COLOUR_OFF)
-            conn.close()
-            continue
-
-        # Spawn new thread and pass it the new socket object
-        thread.start_new_thread(clientthread ,(conn,addr))
-
-    sockobj.close()
+    return reply
 
 def process_arguments():
     args = {}
@@ -285,7 +310,7 @@ def process_arguments():
     access = NetAccess()
 
     try:
-        opts, flat_args = getopt.gnu_getopt(sys.argv[1:],"A:a:b:d:D:hp:")
+        opts, flat_args = getopt.gnu_getopt(sys.argv[1:],"A:a:b:d:D:hp:u")
     except getopt.GetoptError as e:
         print "GetoptError: %s" % e
         hexit(1)
@@ -304,6 +329,9 @@ def process_arguments():
             hexit(0)
         elif opt in ("-p"):
             args["port"] = int(arg)
+        elif opt in ("-u"):
+            args["udp"] = True
+
     switch_arg = False
     if len(flat_args):
         args["dir"] = flat_args[len(flat_args)-1]
