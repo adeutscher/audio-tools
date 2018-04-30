@@ -191,7 +191,7 @@ def find_mp3_files(path):
                 SOUNDS[1]["sound-" + ".".join(s[0:len(s)-1])] = os.path.join(root, name) # Super-lazy double-index for "sound-" prefix.
 
 def hexit(exit_code):
-    print "%s [-a allow-address/range] [-A allow-list-file] [-b bind-address] [-d deny-address/range] [-D deny-list-file] [-h] [-p port]" % os.path.basename(sys.argv[0])
+    print "%s [-a allow-address/range] [-A allow-list-file] [-b bind-address] [-d deny-address/range] [-D deny-list-file] [-h] [-p port] [-u]" % os.path.basename(sys.argv[0])
     exit(exit_code)
 
 def main():
