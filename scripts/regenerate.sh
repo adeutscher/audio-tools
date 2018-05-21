@@ -49,7 +49,7 @@ while read __file; do
 	rm "$__file"
         removedSoundCount="$(($removedSoundCount+1))"
     fi
-done <<< "$(find "$binDir" -type l)"
+done <<< "$(find "$binDir" -type l -name 'sound-*')"
 
 printf 'Created %d new symbolic links.\n' "$count"
 if (( "$removedCount" )); then
