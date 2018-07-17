@@ -288,7 +288,7 @@ def play_sound(data, addr):
             if path:
                 found = True
                 reply = "played\n"
-                printout += "(%s%s%s)" % (COLOUR_GREEN, path, COLOUR_OFF)
+                printout += "(%s%s%s)" % (COLOUR_GREEN, re.sub('^%s/' % os.environ.get("HOME"), '~/', path), COLOUR_OFF)
             else:
                 reply = "not-found\n"
                 printout += "(%s%s%s)" % (COLOUR_RED, "Not found", COLOUR_OFF)
