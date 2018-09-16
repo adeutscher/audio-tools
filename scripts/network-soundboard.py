@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# Host an ad-hoc soundboard with audio files stored in a directory.
+
 # Based off of (via StackExchange):
 #   * https://pymotw.com/2/BaseHTTPServer/index.html#module-BaseHTTPServer
 #   * https://docs.python.org/2/library/simplehttpserver.html
@@ -40,8 +42,8 @@ def process_arguments():
     good = True
     errors = []
 
-    short_opts = common.common_short_opts + "hlnrt"
-    long_opts = common.common_long_opts + [ "--local-links", "--no-links" ]
+    short_opts = common.common_short_opts + "h"
+    long_opts = common.common_long_opts
 
     try:
         opts, flat_args = getopt.gnu_getopt(sys.argv[1:], short_opts, long_opts)
