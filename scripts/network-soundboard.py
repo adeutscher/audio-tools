@@ -13,11 +13,6 @@ if tools_dir:
     sys.path.append(tools_dir + "/scripts/networking/http-servers")
 import CoreHttpServer as common
 
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
-
 # Specific to browser sharer
 
 import cgi
@@ -125,22 +120,23 @@ class SimpleHTTPVerboseReqeustHandler(common.CoreHttpServer):
             for item in items:
                 content += item
 
-        f = StringIO()
         displaypath = cgi.escape(urllib.unquote(common.args.get(common.TITLE_DIR, DEFAULT_DIR)))
-        f.write('<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">\n')
-        f.write("<html>\n<head>\n\t<title>Soundboard: %s</title>\n%s\n" % (displaypath, self.get_soundboard_javascript()))
-        f.write("<body>\n")
-        f.write("""\t<audio id="audio" autoplay="">This browser does not support HTML5, which is required to use this soundboard.</audio>\n""")
-        f.write(content)
-        f.write("</body>\n</html>\n")
-        length = f.tell()
-        f.seek(0)
-        self.send_response(200)
-        encoding = sys.getfilesystemencoding()
-        self.send_header("Content-type", "text/html; charset=%s" % encoding)
-        self.send_header("Content-Length", str(length))
-        self.end_headers()
-        return f
+
+        if not content:
+            content = "No audio files found in directory: %s" % displaypath
+
+        htmlContent = """<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">\n
+<html>
+    <head>
+        <title>Soundboard: %s</title>
+        %s
+    </head>
+    <body>
+        <audio id="audio" autoplay="">This browser does not support HTML5, which is required to use this soundboard.</audio>\n
+        %s
+    </body>
+</html>""" % (displaypath, self.get_soundboard_javascript(), content)
+        return self.serve_content(htmlContent);
 
     def get_soundboard_javascript(self):
         return """
