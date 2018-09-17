@@ -181,7 +181,7 @@ class SimpleHTTPVerboseReqeustHandler(common.CoreHttpServer):
         elif re.match(search_pattern, self.path):
             # Request for audio file.
             # Strip out "/audio" from the path, and attempt to reach the path as a file relative to our target directory.
-            audio_path = os.path.realpath("%s/%s" % (target_dir, re.sub(search_pattern, "", self.path)))
+            audio_path = os.path.realpath("%s/%s" % (target_dir, self.translate_path(re.sub(search_pattern, "", self.path), False)))
 
             # If the requested file path does not end in '.mp3', then then assume that it won't be an audio file.
             # This should not be used as an arbitrary file-sharing server. Immediately 404 out.
