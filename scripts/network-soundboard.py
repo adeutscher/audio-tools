@@ -77,6 +77,14 @@ class SimpleHTTPVerboseReqeustHandler(common.CoreHttpServer):
 
     server_version = "CoreHttpServer (Soundboard Serving)"
 
+    """
+    Expected file extensions for HTML5-compatible formats.
+
+    Note that some browsers may not support all of the
+    below formats.
+    """
+    audio_extensions = [ "mp3", "ogg", "wav" ]
+
     def draw_soundboard(self):
         """Helper to produce a directory listing (absent index.html).
         Return value is either a file object, or None (indicating an
@@ -87,13 +95,20 @@ class SimpleHTTPVerboseReqeustHandler(common.CoreHttpServer):
         target_dir = common.args.get(common.TITLE_DIR, DEFAULT_DIR)
 
         try:
-            contents = os.walk(target_dir)
+            raw_contents = os.walk(target_dir)
         except:
             return self.send_error(500, "Error accessing directory.")
 
         content = ""
-        for dirname, subdirList, fileList in contents:
 
+        contents = []
+
+        for dirname, subdirList, fileList in raw_contents:
+            # Move from the object returned by walk() to a list.
+            contents.append((dirname, fileList))
+
+        for dirname, fileList in sorted(contents, key=lambda entry: entry[0]):
+            # Cycle through our list of items, sorted by directory name.
             items = []
 
             if dirname.startswith(target_dir):
@@ -108,10 +123,10 @@ class SimpleHTTPVerboseReqeustHandler(common.CoreHttpServer):
 
             display_name = re.sub("\/", " / ", display_name)
 
-            for fname in fileList:
-                if not fname.endswith(".mp3"):
+            for fname in sorted(fileList):
+                if not self.is_audio_file(fname):
                     continue
-                items.append("\t\t<h3 audio-path=\"%s/%s\" onClick=\"playSound(this)\">%s</h3>\n" % (attribute_path, fname, self.quote_html(re.sub("\.+mp3$", "", fname))))
+                items.append("\t\t<h3 audio-path=\"%s/%s\" onClick=\"playSound(this)\">%s</h3>\n" % (attribute_path, fname, self.quote_html(re.sub("\.+(%s)$" % "|".join(self.audio_extensions), "", fname))))
 
             if not items:
                 continue # Do not bother to report on categories without any audio files.
@@ -162,6 +177,23 @@ class SimpleHTTPVerboseReqeustHandler(common.CoreHttpServer):
         </script>
 """
 
+    def is_audio_file(self, path):
+        """
+        Check to see if the file path appears to be an audio file.
+
+        At the moment and for the foreseeable future,
+        this is just a file extension check. This isn't a serious
+        enough situation to need to do anything deeper.
+
+        Additional note: Some browsers may not support the playing of
+                         all extensions through <audio> tags.
+        """
+
+        # Get our extension, and flatten it to lowercase.
+        ext = path.split(".")[-1].lower()
+
+        return (ext in self.audio_extensions)
+
     def send_head(self):
         """
         Common code for GET and HEAD commands.
@@ -172,21 +204,27 @@ class SimpleHTTPVerboseReqeustHandler(common.CoreHttpServer):
         None, in which case the caller has nothing further to do.
         """
 
+        # Search pattern indicating a file request.
         search_pattern = "^/audio/+"
-        target_dir = common.args.get(common.TITLE_DIR, os.getcwd())
 
         if self.path == "/":
             # Main directory. Display soundboard.
             return self.draw_soundboard()
+        elif self.path == "/favicon.ico":
+            return self.send_error(404, "File not found.")
         elif re.match(search_pattern, self.path):
             # Request for audio file.
+
+            target_dir = common.args.get(common.TITLE_DIR, os.getcwd())
+
             # Strip out "/audio" from the path, and attempt to reach the path as a file relative to our target directory.
             audio_path = os.path.realpath("%s/%s" % (target_dir, self.translate_path(re.sub(search_pattern, "", self.path), False)))
 
-            # If the requested file path does not end in '.mp3', then then assume that it won't be an audio file.
-            # This should not be used as an arbitrary file-sharing server. Immediately 404 out.
+            # If the requested file path does appear to be a sound file, then immediately 404 out.
+            # This script should not be used as an arbitrary file-sharing server.
+            # That's exactly what the verbose share script was made for.
             # The file should be an existing audio file.
-            if not audio_path.endswith(".mp3") or not (os.path.exists(audio_path) and os.path.isfile(audio_path)):
+            if not self.is_audio_file(audio_path) or not (os.path.exists(audio_path) and os.path.isfile(audio_path)):
                 return self.send_error(404, "File not found")
 
             return self.serve_file(audio_path)
