@@ -126,14 +126,14 @@ class SimpleHTTPVerboseReqeustHandler(common.CoreHttpServer):
             for fname in sorted(fileList):
                 if not self.is_audio_file(fname):
                     continue
-                items.append("\t\t<h3 audio-path=\"%s/%s\" onClick=\"playSound(this)\">%s</h3>\n" % (attribute_path, fname, self.quote_html(re.sub("\.+(%s)$" % "|".join(self.audio_extensions), "", fname))))
+                items.append("""
+                <li class="sound-item"><span audio-path=\"%s/%s\" onClick=\"playSound(this)\">%s</span></li>
+                """ % (attribute_path, fname, self.quote_html(re.sub("\.+(%s)$" % "|".join(self.audio_extensions), "", fname))))
 
             if not items:
                 continue # Do not bother to report on categories without any audio files.
 
-            content += "\t<h2>%s</h2>\n" % self.quote_html(display_name)
-            for item in items:
-                content += item
+            content += """<div class="sound-section"><h2>%s</h2><ul class="sound-list">%s</ul>\n""" % (self.quote_html(display_name), "\n".join(items))
 
         displaypath = cgi.escape(urllib.unquote(common.args.get(common.TITLE_DIR, DEFAULT_DIR)))
 
@@ -145,13 +145,23 @@ class SimpleHTTPVerboseReqeustHandler(common.CoreHttpServer):
     <head>
         <title>Soundboard: %s</title>
         %s
+        %s
     </head>
     <body>
         <audio id="audio" autoplay="">This browser does not support HTML5, which is required to use this soundboard.</audio>\n
         %s
     </body>
-</html>""" % (displaypath, self.get_soundboard_javascript(), content)
+</html>""" % (displaypath, self.get_soundboard_css(), self.get_soundboard_javascript(), content)
         return self.serve_content(htmlContent);
+
+    def get_soundboard_css(self):
+        return """
+        <style>
+
+        ul.sound-list li.sound-item {
+            display: block;
+        }
+        </style>"""
 
     def get_soundboard_javascript(self):
         return """
@@ -174,8 +184,7 @@ class SimpleHTTPVerboseReqeustHandler(common.CoreHttpServer):
 
             audioElement.setAttribute("src", "audio/" + path);
         }
-        </script>
-"""
+        </script>"""
 
     def is_audio_file(self, path):
         """
