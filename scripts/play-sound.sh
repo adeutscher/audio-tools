@@ -33,8 +33,23 @@ play_remote_sound(){
   # Play sound on remote server using audio-server.py.
 
   port=${AUDIO_PORT:-4321}
-  output="$(nc "${AUDIO_SERVER}" "${port}" <<< "${SOUND_NAME}")"
-  if [[ "${output}" != "played" ]]; then
+
+  unset nc_switch
+  (( "${AUDIO_UDP}" )) && nc_switch="-u"
+
+  output="$(nc ${nc_switch} "${AUDIO_SERVER}" "${port}" <<< "${SOUND_NAME}")"
+  exit_code=$? # Store exit code right now before we overwrite it.
+
+  # Check for output to verify if the sound played correctly
+  # We are unable to do this when using UDP.
+
+  # However, we can still tell if `nc` returned an exit code 0 or not.
+  # If `nc` returned a non-zero, then that suggests a fundamental configuration error
+  #   such as an unknown server address or an invalid port.
+  if (( "${exit_code}" )); then
+      printf "nc failed to run against '%s:%s'. See the above error message.\n" "${AUDIO_SERVER}" "${port}"
+      exit 1
+  elif [ -z "${nc_switch}" ] && [[ "${output}" != "played" ]]; then
     if [ -n "${output}" ]; then
       # Print non-played error message if present.
       printf "Server error (%s:%s): %s\n" "${AUDIO_SERVER}" "${port}" "${output}" >&2
