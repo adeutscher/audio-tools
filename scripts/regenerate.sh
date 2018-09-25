@@ -28,7 +28,7 @@ while read __file; do
         printf 'Created symbolic link for %s\n' "$(basename "$__file")"
         count="$(($count+1))"
     fi
-done <<< "$(find "$soundsDir" -type f -name '*mp3' 2> /dev/null)"
+done <<< "$(find "$soundsDir" -type f -name '*mp3' -o -type l -name '*mp3'  2> /dev/null)"
 
 removedCount=0
 # Read dead symbolic links
