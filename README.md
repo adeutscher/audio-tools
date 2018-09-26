@@ -8,6 +8,14 @@ It is useful for either scripted or ad-hoc alerts, especially when
   you need to be away from your machine or if you are working with
   long-running jobs.
 
+To play a sound, run the sound- script links in `bin/`:
+
+    sound-murloc
+
+Sounds can also be repeated by submitting a number as the first argument (this value silently capped at 5):
+
+    sound-murloc 2
+
 ## Adding Sound Clips
 
 Sound clips are played with the `mpg123` command.
