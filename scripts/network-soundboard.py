@@ -26,10 +26,6 @@ if audio_dir:
     #   go to the audio tools directory and serve out of the files.
     DEFAULT_DIR = "%s/files" % audio_dir
 
-def hexit(exit_code):
-    print "%s [-a allow-address/range] [-A allow-list-file] [-b bind-address] [-d deny-address/range] [-D deny-list-file] [-h] [-l] [-n] [-p port] [-P] [-r] [-t] [-v]" % os.path.basename(sys.argv[0])
-    exit(exit_code)
-
 def process_arguments():
 
     # Verbose Sharing Arguments
@@ -37,11 +33,8 @@ def process_arguments():
     good = True
     errors = []
 
-    short_opts = common.common_short_opts + "h"
-    long_opts = common.common_long_opts
-
     try:
-        opts, flat_args = getopt.gnu_getopt(sys.argv[1:], short_opts, long_opts)
+        opts, flat_args = getopt.gnu_getopt(sys.argv[1:],common.get_opts(), common.get_opts_long())
     except getopt.GetoptError as e:
         print "GetoptError: %s" % str(e)
         hexit(1)
@@ -51,9 +44,6 @@ def process_arguments():
 
         if processed:
             continue
-
-        if opt in ("-h"):
-            hexit(0)
 
     switch_arg = False
 
@@ -65,9 +55,12 @@ def process_arguments():
         good = False
         errors.extend(common.access.errors)
 
-    if good:
+    errors.extend(common.validate_common_arguments())
+
+    if good and not errors:
         common.access.announce_filter_actions()
     else:
+        good = False
         for e in errors:
             common.print_error(e)
 
