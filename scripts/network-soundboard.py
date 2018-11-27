@@ -13,6 +13,9 @@ if tools_dir:
     sys.path.append(tools_dir + "/scripts/networking/http-servers")
 import CoreHttpServer as common
 
+# Remove unused arguments
+del common.opts[common.OPT_TYPE_FLAG]["P"]
+
 # Specific to browser sharer
 
 import cgi
