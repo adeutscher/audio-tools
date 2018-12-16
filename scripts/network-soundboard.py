@@ -14,7 +14,8 @@ if tools_dir:
 import CoreHttpServer as common
 
 # Remove unused arguments
-del common.opts[common.OPT_TYPE_FLAG]["P"]
+del common.args.opts[common.OPT_TYPE_FLAG]["-P"]
+common.args.add_validator(common.validate_common_directory) # Validate directory.
 
 # Specific to browser sharer
 
@@ -22,52 +23,11 @@ import cgi
 
 # Script Content
 
-DEFAULT_DIR = os.getcwd()
 audio_dir = os.environ.get("audioToolsDir")
 if audio_dir:
     # If possible (and I'm not sure why it wouldn't be),
     #   go to the audio tools directory and serve out of the files.
-    DEFAULT_DIR = "%s/files" % audio_dir
-
-def process_arguments():
-
-    # Verbose Sharing Arguments
-
-    good = True
-    errors = []
-
-    try:
-        opts, flat_args = getopt.gnu_getopt(sys.argv[1:],common.get_opts(), common.get_opts_long())
-    except getopt.GetoptError as e:
-        print "GetoptError: %s" % str(e)
-        hexit(1)
-    for opt, arg in opts:
-        common_good, processed = common.handle_common_argument(opt, arg)
-        good = common_good and good
-
-        if processed:
-            continue
-
-    switch_arg = False
-
-    common.args[common.TITLE_DIR] = DEFAULT_DIR # Default to current directory or audio tools directory.
-    if flat_args:
-        common.args[common.TITLE_DIR] = flat_args[len(flat_args)-1]
-
-    if len(common.access.errors):
-        good = False
-        errors.extend(common.access.errors)
-
-    errors.extend(common.validate_common_arguments())
-
-    if good and not errors:
-        common.access.announce_filter_actions()
-    else:
-        good = False
-        for e in errors:
-            common.print_error(e)
-
-    return good
+    common.DEFAULT_TARGET = "%s/files" % audio_dir
 
 class SimpleHTTPVerboseReqeustHandler(common.CoreHttpServer):
 
@@ -88,7 +48,7 @@ class SimpleHTTPVerboseReqeustHandler(common.CoreHttpServer):
         interface the same as for send_head().
         """
 
-        target_dir = common.args.get(common.TITLE_DIR, DEFAULT_DIR)
+        target_dir = common.get_target()
 
         try:
             raw_contents = os.walk(target_dir)
@@ -131,7 +91,7 @@ class SimpleHTTPVerboseReqeustHandler(common.CoreHttpServer):
 
             content += """<div class="sound-section"><h2>%s</h2><ul class="sound-list">%s</ul>\n""" % (self.quote_html(display_name), "\n".join(items))
 
-        displaypath = cgi.escape(urllib.unquote(common.args.get(common.TITLE_DIR, DEFAULT_DIR)))
+        displaypath = cgi.escape(urllib.unquote(common.get_target()))
 
         if not content:
             content = "No audio files found in directory: %s" % displaypath
@@ -239,14 +199,9 @@ class SimpleHTTPVerboseReqeustHandler(common.CoreHttpServer):
             return self.send_redirect("/")
 
 if __name__ == '__main__':
-    if not process_arguments():
-        exit(1)
+    common.args.process(sys.argv)
 
     bind_address, bind_port, directory = common.get_target_information()
-
-    if not os.path.isdir(directory):
-        common.print_error("Path %s does not seem to exist." % common.colour_text(common.COLOUR_GREEN, os.path.realpath(directory)))
-        exit(1)
 
     common.announce_common_arguments("Serving audio")
 
