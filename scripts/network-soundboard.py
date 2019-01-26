@@ -12,7 +12,7 @@ tools_dir = os.environ.get("toolsDir")
 if tools_dir:
     sys.path.append(tools_dir + "/scripts/networking/http-servers")
 import CoreHttpServer as common
-common.local_files.append(__file__)
+common.local_files.append(os.path.realpath(__file__))
 
 # Remove unused arguments
 del common.args.opts[common.OPT_TYPE_FLAG]["-P"]
