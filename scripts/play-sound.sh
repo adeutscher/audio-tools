@@ -17,7 +17,7 @@ play_local_sound(){
     return 1
   fi
 
-  SOUND_PATH="$(find "${SOUND_DIR}" -name "${SOUND_NAME}" 2> /dev/null | head -n1)"
+  SOUND_PATH="$(find -P "${SOUND_DIR}" -name "${SOUND_NAME}" 2> /dev/null | head -n1)"
   if [ -z "$SOUND_PATH" ]; then
     printf 'Unable to find %s in %s\n' "${SOUND_NAME}" "${SOUND_DIR}"
     return 1
