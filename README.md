@@ -52,6 +52,10 @@ The sound playing script responds to the following variables:
 | `AUDIO_PORT`   | Port to use for playing sounds on the remote server. Default: 4321                                                                                                                                                              |
 | `AUDIO_UDP`    | Set to a non-zero value to relay sound requests via UDP instead of the default of TCP. Using this mode, the sound script is unable to verify if a sound played successfully unless there was a fundamental error in targetting. |
 
+For an extremely lazy function to set/reset your target server/port, you could use the `audio-server-set` function:
+
+    audio-server-set [server] [port]
+
 ### Manual Sending
 
 If for some reason you do not want to use environment variables, commands can easily be made manually with `nc`.
