@@ -173,18 +173,18 @@ class SimpleHTTPVerboseReqeustHandler(common.CoreHttpServer):
         # Search pattern indicating a file request.
         search_pattern = "^/audio/+"
 
-        if self.path == "/":
+        path = getattr(self, common.ATTR_PATH, "/")
+
+        if path == "/":
             # Main directory. Display soundboard.
             return self.draw_soundboard()
-        elif self.path == "/favicon.ico":
+        elif path.lower() == "/favicon.ico":
             return self.send_error(404, "File not found.")
-        elif re.match(search_pattern, self.path):
+        elif re.match(search_pattern, path):
             # Request for audio file.
 
-            target_dir = common.args.get(common.TITLE_DIR, os.getcwd())
-
             # Strip out "/audio" from the path, and attempt to reach the path as a file relative to our target directory.
-            audio_path = os.path.realpath("%s/%s" % (target_dir, self.translate_path(re.sub(search_pattern, "", self.path), False)))
+            audio_path = os.path.realpath("%s/%s" % (common.get_target(), self.translate_path(re.sub(search_pattern, "", path), False)))
 
             # If the requested file path does appear to be a sound file, then immediately 404 out.
             # This script should not be used as an arbitrary file-sharing server.
