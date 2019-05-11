@@ -21,10 +21,53 @@ SOUNDS = [{},{}]
 class AudioServerHandler:
     def __init__(self, session):
         self.session = session
-        self.reply = not session.udp
+        self.session.reply = not session.udp
 
     def handle(self, header, data):
-        return play_sound(data, self.session.addr)
+        try:
+            return self.play_sound(header, data)
+        except OSError:
+            return "play-error\n"
+
+    def play_sound(self, header, data):
+        # Lop off trailing '.mp3' extension, and everything after the first newline.
+        command = re.sub(r"(\.mp3)?\n.{0,}", "", data, flags=re.IGNORECASE)
+        reply = ""
+        if command == "list":
+            l = SOUNDS[0].keys()
+            l.sort()
+            for i in l:
+                reply += "%s\n" % i
+            print "Client %s:%s requested a listing." % (colour_path(addr[0]), colour_path(addr[1]))
+            return reply
+
+        path = ""
+        if command == "random":
+            key = random.choice(SOUNDS[0].keys())
+            path = SOUNDS[0][key]
+        if command in SOUNDS[0]:
+            path = SOUNDS[0][command]
+        elif command in SOUNDS[1]:
+            path = SOUNDS[1][command]
+
+        if command == "random":
+            printout = "Client %s:%s requested a random sound. Choice: %s" % (colour_path(self.session.addr[0]), colour_path(addr[1]), colour_text(key))
+        else:
+            printout = "Client %s:%s requested %s sound " % (colour_path(self.session.addr[0]), colour_path(self.session.addr[1]), colour_text(command))
+        found = False
+        if path:
+            found = True
+            reply = "played\n"
+            printout += "(%s)" % colour_path(re.sub('^%s/' % os.environ.get("HOME"), '~/', path))
+        else:
+            reply = "not-found\n"
+            printout += "(%s)" % colour_text("Not found", sm.COLOUR_RED)
+        print printout
+
+        if found:
+            p = subprocess.Popen(["mpg123", "-q", path])
+            p.communicate()
+        return reply
 
 def find_mp3_files(path):
     global SOUNDS
@@ -35,52 +78,9 @@ def find_mp3_files(path):
                 SOUNDS[0][".".join(s[0:len(s)-1])] = os.path.join(root, name)
                 SOUNDS[1]["sound-" + ".".join(s[0:len(s)-1])] = os.path.join(root, name) # Super-lazy double-index for "sound-" prefix.
 
-def play_sound(data, addr):
-    try:
-        # Lop off trailing '.mp3' extension, and everything after the first newline.
-        command = re.sub(r"(\.mp3)?\n.{0,}", "", data, flags=re.IGNORECASE)
-        reply = ""
-        if command == "list":
-            l = SOUNDS[0].keys()
-            l.sort()
-            for i in l:
-                reply += "%s\n" % i
-            print "Client %s:%s requested a listing." % (colour_path(addr[0]), colour_path(addr[1]))
-        else:
-            path = ""
-            if command == "random":
-                key = random.choice(SOUNDS[0].keys())
-                path = SOUNDS[0][key]
-            if command in SOUNDS[0]:
-                path = SOUNDS[0][command]
-            elif command in SOUNDS[1]:
-                path = SOUNDS[1][command]
-
-            if command == "random":
-                printout = "Client %s:%s requested a random sound. Choice: %s" % (colour_path(addr[0]), colour_path(addr[1]), colour_text(key))
-            else:
-                printout = "Client %s:%s requested %s sound " % (colour_path(addr[0]), colour_text(addr[1]), colour_text(command))
-            found = False
-            if path:
-                found = True
-                reply = "played\n"
-                printout += "(%s)" % colour_path(re.sub('^%s/' % os.environ.get("HOME"), '~/', path))
-            else:
-                reply = "not-found\n"
-                printout += "(%s)" % colour_text("Not found", sm.COLOUR_RED)
-            print printout
-
-            if found:
-                p = subprocess.Popen(["mpg123", "-q", path])
-                p.communicate()
-    except OSError:
-        reply = "play-error\n"
-    return reply
-
 if __name__ == "__main__":
     sm.set_mode_tcp_default()
     args.process(sys.argv)
-    directory = args.last_operand(os.environ.get("audioToolsDir") + "/files")
-    find_mp3_files(directory)
-    sm.announce_common_arguments("Playing %s sounds in %s" % (colour_text(len(SOUNDS[0])), colour_path(directory)))
+    directory = find_mp3_files(args.last_operand(os.environ.get("audioToolsDir") + "/files"))
+    sm.announce_common_arguments("Playing sounds")
     sm.serve(AudioServerHandler)
