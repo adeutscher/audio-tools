@@ -38,7 +38,7 @@ class AudioServerHandler:
             l.sort()
             for i in l:
                 reply += "%s\n" % i
-            print "Client %s:%s requested a listing." % (colour_path(addr[0]), colour_path(addr[1]))
+            print "Client %s:%s requested a listing." % (colour_path(self.session.addr[0]), colour_path(self.session.addr[1]))
             return reply
 
         path = ""
@@ -51,17 +51,17 @@ class AudioServerHandler:
             path = SOUNDS[1][command]
 
         if command == "random":
-            printout = "Client %s:%s requested a random sound. Choice: %s" % (colour_path(self.session.addr[0]), colour_path(addr[1]), colour_text(key))
+            printout = "Client %s:%s requested a random sound. Choice: %s" % (colour_path(self.session.addr[0]), colour_path(self.session.addr[1]), colour_text(key))
         else:
             printout = "Client %s:%s requested %s sound " % (colour_path(self.session.addr[0]), colour_path(self.session.addr[1]), colour_text(command))
         found = False
         if path:
             found = True
             reply = "played\n"
-            printout += "(%s)" % colour_path(re.sub('^%s/' % os.environ.get("HOME"), '~/', path))
+            printout += " (%s)" % colour_path(re.sub('^%s/' % os.environ.get("HOME"), '~/', path))
         else:
             reply = "not-found\n"
-            printout += "(%s)" % colour_text("Not found", sm.COLOUR_RED)
+            printout += " (%s)" % colour_text("Not found", sm.COLOUR_RED)
         print printout
 
         if found:
