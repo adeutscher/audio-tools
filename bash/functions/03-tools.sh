@@ -50,7 +50,7 @@ if [ -n "$audioToolsDir" ]; then
     export AUDIO_SERVER="${host}"
     export AUDIO_PORT="${port:-4321}"
 
-    notice "$(printf "Setting audio server address: ${Colour_NetworkAddress}%s${Colour_Off}:${Colour_NetworkAddress}%d${Colour_Off}" "${host}" "${port:-1234}")"
+    notice "$(printf "Setting audio server address: ${Colour_NetworkAddress}%s${Colour_Off}:${Colour_NetworkAddress}%d${Colour_Off}" "${host}" "${port:-4321}")"
   }
 
 fi # end audioToolsDir check
