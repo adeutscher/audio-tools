@@ -15,8 +15,20 @@ from SimpleMessages import args, colour_path, colour_text
 sm.local_files.append(os.path.realpath(__file__))
 
 DEFAULT_AUDIO_PORT = 4321
+DEFAULT_VOLUME = 100
+TITLE_VOLUME = "volume"
+
+args.add_opt(sm.OPT_TYPE_LONG, "volume", TITLE_VOLUME, "Set volume as a percentage of system volume.", converter=int, default=DEFAULT_VOLUME, default_announce = True)
+
 sm.set_default_port(DEFAULT_AUDIO_PORT)
 SOUNDS = [{},{}]
+
+def validate_volume(self):
+    if self[TITLE_VOLUME] < 0:
+        return "Volume value is too low: %s%%" % colour_text(args[TITLE_VOLUME])
+    if self[TITLE_VOLUME] > 200:
+        return "Volume value is too high: %s%%" % colour_text(args[TITLE_VOLUME])
+args.add_validator(validate_volume)
 
 class AudioServerHandler:
     def __init__(self, session):
@@ -65,7 +77,9 @@ class AudioServerHandler:
         print printout
 
         if found:
-            p = subprocess.Popen(["mpg123", "-q", path])
+            magic_value = 32768 # mpg123 default filter level
+            # Note: 'filter' phrasing is an artifact of older audio terms.
+            p = subprocess.Popen(["mpg123", "-f", str(int(args[TITLE_VOLUME] / 100.0 * magic_value)),"-q", path])
             p.communicate()
         return reply
 
@@ -82,5 +96,7 @@ if __name__ == "__main__":
     sm.set_mode_tcp_default()
     args.process(sys.argv)
     directory = find_mp3_files(args.last_operand(os.environ.get("audioToolsDir") + "/files"))
+    if args[TITLE_VOLUME] != DEFAULT_VOLUME:
+        sm.print_notice("Volume: %s%%" % colour_text(args[TITLE_VOLUME]))
     sm.announce_common_arguments("Playing sounds")
     sm.serve(AudioServerHandler)
