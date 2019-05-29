@@ -78,8 +78,10 @@ class AudioServerHandler:
 
         if found:
             magic_value = 32768 # mpg123 default filter level
+            filter_value = int(args[TITLE_VOLUME] / 100.0 * magic_value)
+
             # Note: 'filter' phrasing is an artifact of older audio terms.
-            p = subprocess.Popen(["mpg123", "-f", str(int(args[TITLE_VOLUME] / 100.0 * magic_value)),"-q", path])
+            p = subprocess.Popen(["mpg123", "-f", str(filter_value),"-q", path])
             p.communicate()
         return reply
 
