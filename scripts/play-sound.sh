@@ -26,7 +26,7 @@ play_local_sound(){
     return 1
   fi
 
-  mpg123 -q "${SOUND_PATH}"
+  mpg123 --loop "${REPEAT_COUNT}" -q "${SOUND_PATH}"
 }
 
 play_remote_sound(){
@@ -78,19 +78,17 @@ elif [ "${REPEAT_COUNT}" -gt "${REPEAT_MAX}" ]; then
   REPEAT_COUNT="${REPEAT_MAX}"
 fi
 
-i=0
-ret=0
+if [ -n "${AUDIO_SERVER}" ]; then
+  i=0
+  while [ "${i}" -lt "${REPEAT_COUNT}" ]; do
+    i="$((${i}+1))"
 
-while [ "${i}" -lt "${REPEAT_COUNT}" ]; do
-  i="$((${i}+1))"
-
-  # To consider for later: Should a failed playing
-  #   one sound be reason enough to skip later loops?
-  if [ -n "${AUDIO_SERVER}" ]; then
+    # To consider for later: Should a failed playing
+    #   one sound be reason enough to skip later loops?
     play_remote_sound || ret=1
-  else
-    play_local_sound || ret=1
-  fi
-done
+  done
+else
+  play_local_sound || ret=1
+fi
 
-exit "${ret}"
+exit "${ret:-0}"
