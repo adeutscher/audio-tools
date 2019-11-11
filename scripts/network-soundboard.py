@@ -6,7 +6,12 @@
 #   * https://pymotw.com/2/BaseHTTPServer/index.html#module-BaseHTTPServer
 #   * https://docs.python.org/2/library/simplehttpserver.html
 
-import getopt, os, re, socket, sys, urllib
+import getopt, os, re, socket, sys
+
+if sys.version_info[0] == 2:
+    from urlparse import unquote
+else:
+    from urllib.parse import unquote
 
 tools_dir = os.environ.get("toolsDir")
 if tools_dir:
@@ -92,7 +97,7 @@ class SimpleHTTPVerboseReqeustHandler(common.CoreHttpServer):
 
             content += """<div class="sound-section"><h2>%s</h2><ul class="sound-list">%s</ul>\n""" % (self.quote_html(display_name), "\n".join(items))
 
-        displaypath = cgi.escape(urllib.unquote(common.get_target()))
+        displaypath = cgi.escape(unquote(common.get_target()))
 
         if not content:
             content = "No audio files found in directory: %s" % displaypath
