@@ -1,5 +1,5 @@
 
-export audioToolsDir="${__current_module_dir:-$HOME/tools/sound-tools}"
+export audioToolsDir="${__current_module_dir:-$HOME/tools/audio-tools}"
 
 if [ -d "$audioToolsDir/bash/functions" ]; then
     for functionFile in $audioToolsDir/bash/functions/*sh; do

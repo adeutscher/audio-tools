@@ -10,10 +10,10 @@ if [ -n "$audioToolsDir" ]; then
             return 1
         fi
 
-        update-repo "$audioToolsDir" "sound tools"
+        update-repo "$audioToolsDir" "audio tools"
 
         # Confirm the permissions on the module directory
-        #     Do this whether or not the SVN update actually succeeded.
+        #     Do this whether or not the version control update actually succeeded.
         chmod 700 "$audioToolsDir"
     }
 
