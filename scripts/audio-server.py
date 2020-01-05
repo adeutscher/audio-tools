@@ -5,6 +5,7 @@ This is a super-silly server made to play sounds on a remote server.
 The intent was to easily play a sound using only netcat as a client.
 '''
 
+from __future__ import print_function
 import os,random,re,subprocess,sys
 
 tools_dir = os.environ.get("toolsDir")
@@ -50,7 +51,7 @@ class AudioServerHandler:
             l.sort()
             for i in l:
                 reply += "%s\n" % i
-            print "Client %s:%s requested a listing." % (colour_path(self.session.addr[0]), colour_path(self.session.addr[1]))
+            print("Client %s:%s requested a listing." % (colour_path(self.session.addr[0]), colour_path(self.session.addr[1])))
             return reply
 
         path = ""
@@ -74,7 +75,7 @@ class AudioServerHandler:
         else:
             reply = "not-found\n"
             printout += " (%s)" % colour_text("Not found", sm.COLOUR_RED)
-        print printout
+        print(printout)
 
         if found:
             magic_value = 32768 # mpg123 default filter level
