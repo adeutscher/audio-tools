@@ -6,7 +6,7 @@ The intent was to easily play a sound using only netcat as a client.
 '''
 
 from __future__ import print_function
-import os,random,re,subprocess,sys
+import os,random,re,subprocess,sys,time
 
 tools_dir = os.environ.get("toolsDir")
 if tools_dir:
@@ -23,6 +23,9 @@ args.add_opt(sm.OPT_TYPE_LONG, "volume", TITLE_VOLUME, "Set volume as a percenta
 
 sm.set_default_port(DEFAULT_AUDIO_PORT)
 SOUNDS = [{},{}]
+
+def print_client_message(client, message):
+    print('[%s]  %s  %s' % (time.strftime('%Y-%m-%d %I:%M:%S'), colour_text(client, sm.COLOUR_BLUE), message))
 
 def validate_volume(self):
     if self[TITLE_VOLUME] < 0:
@@ -46,12 +49,16 @@ class AudioServerHandler:
         # Lop off trailing '.mp3' extension, and everything after the first newline.
         command = re.sub(r"(\.mp3)?\n.{0,}", "", data, flags=re.IGNORECASE)
         reply = ""
+
+        client = self.session.addr[0]
+
         if command == "list":
             l = SOUNDS[0].keys()
             l.sort()
             for i in l:
                 reply += "%s\n" % i
-            print("Client %s:%s requested a listing." % (colour_path(self.session.addr[0]), colour_path(self.session.addr[1])))
+
+            print_client_message(client, "Listing requested.")
             return reply
 
         path = ""
@@ -64,9 +71,10 @@ class AudioServerHandler:
             path = SOUNDS[1][command]
 
         if command == "random":
-            printout = "Client %s:%s requested a random sound. Choice: %s" % (colour_path(self.session.addr[0]), colour_path(self.session.addr[1]), colour_text(key))
+            printout = "Random: %s" % (colour_path(self.session.addr[0]), colour_path(self.session.addr[1]), colour_text(key))
         else:
-            printout = "Client %s:%s requested %s sound " % (colour_path(self.session.addr[0]), colour_path(self.session.addr[1]), colour_text(command))
+            printout = colour_text(command)
+
         found = False
         if path:
             found = True
@@ -75,7 +83,7 @@ class AudioServerHandler:
         else:
             reply = "not-found\n"
             printout += " (%s)" % colour_text("Not found", sm.COLOUR_RED)
-        print(printout)
+        print_client_message(client, printout)
 
         if found:
             magic_value = 32768 # mpg123 default filter level
