@@ -24,7 +24,7 @@ while read __file; do
     [ -z "$__file" ] && continue
     # Create a symbolic link to play script.
     # The script will deduce the filename from the $0 variable.
-    if ln -s "../scripts/play-sound.sh" "$binDir/sound-$(basename "${__file%.*}")" 2> /dev/null; then
+    if ln -s "../scripts/play-sound.py" "$binDir/sound-$(basename "${__file%.*}")" 2> /dev/null; then
         printf 'Created symbolic link for %s\n' "$(basename "$__file")"
         count="$(($count+1))"
     fi
