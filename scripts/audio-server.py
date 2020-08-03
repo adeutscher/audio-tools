@@ -6,7 +6,7 @@ The intent was to easily play a sound using only netcat as a client.
 '''
 
 from __future__ import print_function
-import os,random,re,subprocess,sys,time
+import json,os,random,re,subprocess,sys,time
 
 tools_dir = os.environ.get("toolsDir")
 if tools_dir:
@@ -45,9 +45,39 @@ class AudioServerHandler:
         except OSError:
             return "play-error\n"
 
+    def parse_data(self, data):
+        
+        count = 1
+        try:
+            cmd_obj = json.loads(data)
+            cmd_raw = str(cmd_obj.get('cmd') or '')
+            
+            try:
+                count = int(cmd_obj.get('loop'))
+            except (TypeError, ValueError):
+                pass
+        except json.decoder.JSONDecodeError:
+            '''
+                JSON decode failed.
+                
+                If this is legitimate, then it could be:
+                    * A old client script that hasn't been updated to the Python version.
+                    * A manual request via nc (maybe the system doesn't support Python?)
+            '''
+            cmd_raw = data
+            
+        cmd = re.sub(r"(\.mp3)?\n.{0,}", "", cmd_raw, flags=re.IGNORECASE)
+        # Cap count per-request at 3
+        count = max(1, min(3, count))
+        
+        return (cmd, count)
+
     def play_sound(self, header, data):
         # Lop off trailing '.mp3' extension, and everything after the first newline.
-        command = re.sub(r"(\.mp3)?\n.{0,}", "", data, flags=re.IGNORECASE)
+        
+        
+        command, count = self.parse_data(data)
+        
         reply = ""
 
         client = self.session.addr[0]
@@ -63,7 +93,7 @@ class AudioServerHandler:
 
         path = ""
         if command == "random":
-            key = random.choice(SOUNDS[0].keys())
+            key = random.choice(list(SOUNDS[0].keys()))
             path = SOUNDS[0][key]
         if command in SOUNDS[0]:
             path = SOUNDS[0][command]
@@ -71,9 +101,12 @@ class AudioServerHandler:
             path = SOUNDS[1][command]
 
         if command == "random":
-            printout = "Random: %s" % (colour_path(self.session.addr[0]), colour_path(self.session.addr[1]), colour_text(key))
+            printout = "Random: %s" % colour_path(self.session.addr[0])
         else:
             printout = colour_text(command)
+            
+        if count > 1:
+            printout += ' x%s' % colour_text(count)
 
         found = False
         if path:
@@ -90,18 +123,18 @@ class AudioServerHandler:
             filter_value = int(args[TITLE_VOLUME] / 100.0 * magic_value)
 
             # Note: 'filter' phrasing is an artifact of older audio terms.
-            p = subprocess.Popen(["mpg123", "-f", str(filter_value),"-q", path])
-            p.communicate()
+            for i in range(count):
+                p = subprocess.Popen(["mpg123", "-f", str(filter_value),"-q", path])
+                p.communicate()
         return reply
 
 def find_mp3_files(path):
     global SOUNDS
     for root, dirs, files in os.walk(path):
-        for name in files:
-            if name.endswith(".mp3"):
-                s = name.split(".")
-                SOUNDS[0][".".join(s[0:len(s)-1])] = os.path.join(root, name)
-                SOUNDS[1]["sound-" + ".".join(s[0:len(s)-1])] = os.path.join(root, name) # Super-lazy double-index for "sound-" prefix.
+        for name in [n for n in files if n.endswith('.mp3')]:
+            s = name.split(".")
+            SOUNDS[0][".".join(s[0:len(s)-1])] = os.path.join(root, name)
+            SOUNDS[1]["sound-" + ".".join(s[0:len(s)-1])] = os.path.join(root, name) # Super-lazy double-index for "sound-" prefix.
 
 if __name__ == "__main__":
     sm.set_mode_tcp_default()

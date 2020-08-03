@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 
-import os, re, socket, subprocess, sys, time
+import json, os, re, socket, subprocess, sys, time
 try:
     if sys.version_info.major == 3:
         # Chromecast module seems to only work for Python3.
@@ -119,16 +119,11 @@ class HandlerAudioServer (BaseHandler):
             print_error('Invalid network port: %s', self.port_raw)
             return
 
-        for i in range(count):
-            if not self.play_sound(sound):
-                break
-
-    def play_sound(self, sound):
-
+        # Shorthand
         port = self.port
         server = self.runner.audio_server
 
-        msg = convert_s2b(sound)
+        msg = convert_s2b(json.dumps({'cmd': sound, 'loop': count}))
         addr = (server, port)
         server_tag = '%s:%s' % (colour_text(server, COLOUR_BLUE), colour_text(port))
 
