@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 
+from __future__ import print_function
+
 import os, re, socket, subprocess, sys, time
 try:
-    import pychromecast
-    CHROMECAST_IMPORT = True
+    if sys.version_info.major == 3:
+        # Chromecast module seems to only work for Python3.
+        # With Python2 being EoL, that probably won't change in the future.
+        import pychromecast
+        CHROMECAST_IMPORT = True
 except ImportError:
     CHROMECAST_IMPORT = False
 
@@ -245,7 +250,12 @@ class HandlerGoogleHome(BaseHandler):
 
         if not CHROMECAST_IMPORT:
             mod = 'pychromecast'
-            print_error('Could not import %s module. With %s: pip install --user %s' % (colour_text(mod), colour_text('pip', COLOUR_BLUE), mod))
+            if sys.version_info.major == 2:
+                # In Python2, the failed import is because we haven't tried to import it.
+                #   The import in Python2 failed on my Pi with a syntax error.
+                print_error('The %s module does not work in Python2. Use Python3 instead.' % colour_text(mod))
+            else:            
+                print_error('Could not import %s module. With %s: pip install --user %s' % (colour_text(mod), colour_text('pip', COLOUR_BLUE), mod))
 
         if not self.base_http:
             print_error('No base HTTP path set for Google Home (%s environment variable)' % colour_text(self.ENV_BASE_HTTP))
@@ -334,7 +344,6 @@ class Runner:
         count = 1
         if len(sys.argv) > 1:
             try:
-
                 count = int(self.__get_replay_count_raw())
             except ValueError:
                 return None
@@ -345,6 +354,10 @@ class Runner:
 
     def __get_sound_name(self):
         # ToDo: Add a way to alternately specify in CLI args.
+        
+        if os.path.realpath(sys.argv[0]) == os.path.abspath(sys.argv[0]):
+            # Script was not invoked via a symbolic link as intended.
+            return None
         return re.sub(r'^sound\-', '', os.path.basename(sys.argv[0]))
 
     def __init__(self):
@@ -372,6 +385,9 @@ class Runner:
 
     def run(self, handler = None):
         sound_name = self.sound_name
+        if not sound_name:
+            print_error('Script must be invoked via symbolic link. It should not be run manually.')
+            return
 
         if handler is None:
             handler = self.get_handler()
