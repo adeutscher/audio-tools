@@ -119,14 +119,17 @@ class AudioServerHandler:
         print_client_message(client, printout)
 
         if found:
-            magic_value = 32768 # mpg123 default filter level
-            filter_value = int(args[TITLE_VOLUME] / 100.0 * magic_value)
-
-            # Note: 'filter' phrasing is an artifact of older audio terms.
-            for i in range(count):
-                p = subprocess.Popen(["mpg123", "-f", str(filter_value),"-q", path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                p.communicate()
+            self.play_sound_local(path, count)
         return reply
+        
+    def play_sound_local(self, path, count):
+        magic_value = 32768 # mpg123 default filter level
+        filter_value = int(args[TITLE_VOLUME] / 100.0 * magic_value)
+
+        # Note: 'filter' phrasing is an artifact of older audio terms.
+        for i in range(count):
+            p = subprocess.Popen(["mpg123", "-f", str(filter_value),"-q", path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            p.communicate()
 
 def find_mp3_files(path):
     global SOUNDS
