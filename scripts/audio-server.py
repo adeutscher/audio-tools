@@ -124,7 +124,7 @@ class AudioServerHandler:
 
             # Note: 'filter' phrasing is an artifact of older audio terms.
             for i in range(count):
-                p = subprocess.Popen(["mpg123", "-f", str(filter_value),"-q", path])
+                p = subprocess.Popen(["mpg123", "-f", str(filter_value),"-q", path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 p.communicate()
         return reply
 
