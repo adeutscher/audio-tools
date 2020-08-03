@@ -26,7 +26,7 @@ if [ -n "$audioToolsDir" ]; then
     local port="$(cut -d':' -f2 <<< "${2}")"
 
     if [ -z "${addr}" ]; then
-      notice "Clearing out audio server variabls."
+      notice "Clearing out audio server variables."
       unset AUDIO_SERVER AUDIO_PORT
       return 0
     elif [ -n "${port}" ]; then
