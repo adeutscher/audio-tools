@@ -10,16 +10,29 @@ import json,os,random,re,subprocess,sys,time
 
 tools_dir = os.environ.get("toolsDir")
 if tools_dir:
-    sys.path.append(tools_dir + "/scripts/networking/simple-message-servers")
+    sys.path.append(tools_dir + '/scripts/networking/simple-message-servers')
 import SimpleMessages as sm
 from SimpleMessages import args, colour_path, colour_text
 sm.local_files.append(os.path.realpath(__file__))
 
+try:
+    if sys.version_info.major == 3:
+        # Chromecast module seems to only work for Python3.
+        # With Python2 being EoL, that probably won't change in the future.
+        import pychromecast
+        CHROMECAST_IMPORT = True
+except ImportError:
+    CHROMECAST_IMPORT = False
+
 DEFAULT_AUDIO_PORT = 4321
 DEFAULT_VOLUME = 100
 TITLE_VOLUME = "volume"
+TITLE_GOOGLE_HOME_IP = 'google-home-ip'
+TITLE_GOOGLE_HOME_BASE_URL = 'google-home-base-url'
 
 args.add_opt(sm.OPT_TYPE_LONG, "volume", TITLE_VOLUME, "Set volume as a percentage of system volume.", converter=int, default=DEFAULT_VOLUME, default_announce = True)
+args.add_opt(sm.OPT_TYPE_SHORT, 'g', TITLE_GOOGLE_HOME_IP, 'Set IP of Google Home device.', environment = 'AUDIO_SERVER_GOOGLE_HOME_IP')
+args.add_opt(sm.OPT_TYPE_LONG, 'base-url', TITLE_GOOGLE_HOME_BASE_URL, 'Set base of URL that Google Home device will use to retrieve files.', environment = 'AUDIO_SERVER_BASE_URL')
 
 sm.set_default_port(DEFAULT_AUDIO_PORT)
 SOUNDS = [{},{}]
@@ -27,6 +40,32 @@ SOUNDS = [{},{}]
 def print_client_message(client, message):
     print('[%s]  %s  %s' % (time.strftime('%Y-%m-%d %I:%M:%S'), colour_text(client, sm.COLOUR_BLUE), message))
 
+def validate_google_home(self):
+    
+    errors = []
+    
+    if not CHROMECAST_IMPORT:
+        mod = 'pychromecast'
+        if sys.version_info.major == 2:
+            # In Python2, the failed import is because we haven't tried to import it.
+            #   The import in Python2 failed on my Pi with a syntax error.
+            errors.append('The %s module does not work in Python2. Use Python3 instead.' % colour_text(mod))
+        else:            
+            errors.append('Could not import %s module. With %s: pip install --user %s' % (colour_text(mod), colour_text('pip', sm.COLOUR_BLUE), mod))
+    
+    if self[TITLE_GOOGLE_HOME_BASE_URL]:
+        if not re.match(r'^https?://', self[TITLE_GOOGLE_HOME_BASE_URL], re.IGNORECASE):
+            errors.append('Invalid base URL: %s' % colour_text(self[TITLE_GOOGLE_HOME_BASE_URL]))
+        if not self[TITLE_GOOGLE_HOME_IP]:
+            errors.append('Base URL provided, but Google Home IP was not provided.')
+    elif self[TITLE_GOOGLE_HOME_IP]:
+        # Implies no base url
+        errors.append('Google Home IP was provided, but no base URL was provided.')
+        
+    return errors
+    
+args.add_validator(validate_google_home)
+    
 def validate_volume(self):
     if self[TITLE_VOLUME] < 0:
         return "Volume value is too low: %s%%" % colour_text(args[TITLE_VOLUME])
@@ -74,8 +113,7 @@ class AudioServerHandler:
 
     def play_sound(self, header, data):
         # Lop off trailing '.mp3' extension, and everything after the first newline.
-        
-        
+                
         command, count = self.parse_data(data)
         
         reply = ""
@@ -119,8 +157,50 @@ class AudioServerHandler:
         print_client_message(client, printout)
 
         if found:
-            self.play_sound_local(path, count)
+            if args[TITLE_GOOGLE_HOME_IP]:
+                self.play_sound_google_home(path, count)
+            else:
+                self.play_sound_local(path, count)
         return reply
+    
+    def play_sound_google_home(self, path_file, count):
+        
+        base_http = re.sub(r'/*$', '', args[TITLE_GOOGLE_HOME_BASE_URL])
+        global BASE
+
+        path_http = '%s/%s' % (base_http, re.sub(r'%s/*' % BASE, '', path_file))
+        
+        try:
+            if CHROMECAST_IMPORT:
+                dev = pychromecast.Chromecast(args[TITLE_GOOGLE_HOME_IP])
+                dev.wait()
+        except pychromecast.error.ChromecastConnectionError as e:
+            sm.print_error('Google Home Error: %s' % str(e))
+            return False
+            
+        # ToDo: Improve on error handling
+
+        '''
+          The original version of the Chromecast script temporarily muted
+            the Google device in order to avoid a 'BEEP'. However, I found the
+            high and brief 'bip' caused by setting the volume back to be much
+            more unpleasant than the longer but lower 'bloop' that came from my device.
+        '''
+
+        mc = dev.media_controller # Shorthand
+        mc.play_media(path_http, "audio/mp3")
+        mc.block_until_active()
+        mc.pause() # Prepare audio
+        time.sleep(1) # Necessary sleep while audio prepares.
+
+        mc.play() #play the mp3
+
+        # Wait for the item to be done.
+        while not mc.status.player_is_idle:
+           time.sleep(0.25)
+        mc.stop()
+            
+        return True
         
     def play_sound_local(self, path, count):
         magic_value = 32768 # mpg123 default filter level
@@ -132,6 +212,8 @@ class AudioServerHandler:
             p.communicate()
 
 def find_mp3_files(path):
+    global BASE
+    BASE = path
     global SOUNDS
     for root, dirs, files in os.walk(path):
         for name in [n for n in files if n.endswith('.mp3')]:
@@ -145,5 +227,8 @@ if __name__ == "__main__":
     directory = find_mp3_files(args.last_operand(os.environ.get("audioToolsDir") + "/files"))
     if args[TITLE_VOLUME] != DEFAULT_VOLUME:
         sm.print_notice("Volume: %s%%" % colour_text(args[TITLE_VOLUME]))
-    sm.announce_common_arguments("Playing sounds")
+    phrasing = 'Playing sounds'
+    if args[TITLE_GOOGLE_HOME_IP]:
+        phrasing = 'Tasking Google Home node @ %s' % colour_text(args[TITLE_GOOGLE_HOME_IP], sm.COLOUR_BLUE)
+    sm.announce_common_arguments(phrasing)
     sm.serve(AudioServerHandler)

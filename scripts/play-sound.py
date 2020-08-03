@@ -150,6 +150,7 @@ class HandlerAudioServer (BaseHandler):
                     return False
 
                 try:
+                    s.settimeout(30)
                     reply = convert_b2s(s.recv(1024)).strip()
                 except socket.timeout:
                     print_error('Timed out waiting for a reply from  %s.' % server_tag)
@@ -170,7 +171,7 @@ class HandlerAudioServer (BaseHandler):
 
 class HandlerGoogleHome(BaseHandler):
 
-    ENV_BASE_HTTP = 'AUDIO_SERVER_BASE_HTTP'
+    ENV_BASE_HTTP = 'AUDIO_SERVER_BASE_URL'
     ENV_BASE_LOCAL = 'AUDIO_SERVER_BASE_LOCAL'
 
     '''
