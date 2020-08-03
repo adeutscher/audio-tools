@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import os, re, socket, subprocess, sys, time
 try:
@@ -245,12 +245,14 @@ class HandlerGoogleHome(BaseHandler):
 
         if not CHROMECAST_IMPORT:
             mod = 'pychromecast'
-            print_error('Could not import %s module. With %s: pip install --user %s' % (coloud_text(mod), colour_text('pip', COLOUR_BLUE), mod))
+            print_error('Could not import %s module. With %s: pip install --user %s' % (colour_text(mod), colour_text('pip', COLOUR_BLUE), mod))
 
         if not self.base_http:
             print_error('No base HTTP path set for Google Home (%s environment variable)' % colour_text(self.ENV_BASE_HTTP))
         elif not re.match(r'^https?://', self.base_http, re.IGNORECASE):
             print_error('Invalid base HTTP path (%s environment variable): %s' % (colour_text(self.ENV_BASE_HTTP), colour_text(self.base_http)))
+        # Idea: For further URL validation, filter out obvious localhost hostnames that Google Home won't be able to reach?
+        #       Alternately, raise an issue if the HTTP server isn't in the same /24 block as the audio server, for fear of slow transfers causing our sleeps to be not enough?
 
         if not self.base_local:
             print_error('No local audio directory set for Google Home (%s environment variable)' % colour_text(self.ENV_BASE_LOCAL))
@@ -269,12 +271,16 @@ class HandlerGoogleHome(BaseHandler):
                     of the Google Home device. If it doesn't give a 200 status code,
                     then it's not worth passing along.
 
+                    The most common error from development that this would solve would be
+                    forgetting to start up the external HTTP server to host the sound files.
+
                     Could even go a step further and validate the content as an MP3.
         '''
 
         try:
-            self.dev = pychromecast.Chromecast(self.runner.audio_server)
-            self.dev.wait()
+            if CHROMECAST_IMPORT:
+                self.dev = pychromecast.Chromecast(self.runner.audio_server)
+                self.dev.wait()
         except pychromecast.error.ChromecastConnectionError as e:
             print_error('Google Home Error: %s' % str(e))
 
