@@ -23,10 +23,13 @@ play_remote_sound(){
   fi
 }
 
-if [ -n "${AUDIO_SERVER}" ]; then
-  play_remote_sound
-else
+if [ -z "${AUDIO_SERVER}" ]; then
   play_local_sound
+elif [[ "${AUDIO_SERVER_TYPE}" == "google-home" ]]; then
+  echo "Random sounds current not supported for Google Home." >&2
+  exit 1
+else
+  play_remote_sound
 fi
-    
-    
+
+

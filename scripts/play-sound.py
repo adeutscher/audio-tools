@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 
-import os, re, socket, subprocess, sys
+import os, re, socket, subprocess, sys, time
+try:
+    import pychromecast
+    CHROMECAST_IMPORT = True
+except ImportError:
+    CHROMECAST_IMPORT = False
 
 def _print_message(header_colour, header_text, message, stderr=False):
     f=sys.stdout
@@ -71,7 +76,11 @@ def print_notice(message):
 def print_warning(message):
     _print_message(COLOUR_YELLOW, "Warning", message)
 
-class HandlerAudioServer:
+class BaseHandler:
+    def __init__(self, runner):
+        self.runner = runner
+
+class HandlerAudioServer (BaseHandler):
 
     DEFAULT_PORT = 4321
 
@@ -159,12 +168,124 @@ class HandlerAudioServer:
     port = property(__get_port)
     port_raw = property(__get_port_raw)
 
-class HandlerLocal:
+class HandlerGoogleHome(BaseHandler):
+
+    ENV_BASE_HTTP = 'AUDIO_SERVER_BASE_HTTP'
+    ENV_BASE_LOCAL = 'AUDIO_SERVER_BASE_LOCAL'
+
+    '''
+    Get the base of the URL that the Google Home device will access.
+    '''
+    def __get_base_http(self):
+        return re.sub(r'/$', '', os.environ.get(self.ENV_BASE_HTTP) or '')
+
+    '''
+    Get directory that a copy of the available sound files is expected to be in.
+    This needs to match, because it is used to construct the URL that the Google
+    Home device will access.
+    '''
+    def __get_base_local(self):
+        return os.environ.get(self.ENV_BASE_LOCAL) or ''
+
+    base_http = property(__get_base_http)
+    base_local = property(__get_base_local)
+
+    def floor_volume(self, dev):
+        vol_prec = dev.status.volume_level
+        dev.set_volume(0.0) # Set volum 0 to not hear the 'bloop' sound.
+        return vol_prec
+
+    def play(self, sound, count):
+
+        '''
+        Original Python approach of using a Python Chromecast library to interact with Google home by 'Giovanni'
+        Source: https://www.gioexperience.com/google-home-hack-send-voice-programmaticaly-with-python/
+
+        A hiccup in my original approach at this is that it requires an external source to share the file over HTTP.
+        This isn't the end of the world, given things like the network-soundboard script, my core-tools
+        module's http-quick-share script, or the stock SimpleHttpServer module. However, it still
+        adds a few steps that I'd rather skip if possible.
+        '''
+
+        if not self.setup(sound):
+            return
+
+        # ToDo: Improve on error handling
+
+        '''
+          The original version of the Chromecast script temporarily muted
+            the Google device in order to avoid a 'BEEP'. However, I found the
+            high and brief 'bip' caused by setting the volume back to be much
+            more unpleasant than the longer but lower 'bloop' that came from my device.
+          Leaving this in for the moment. Will make it more configurable later.
+          # vol_prec=self.floor_volume(dev)
+        '''
+
+        mc = self.dev.media_controller # Shorthand
+        mc.play_media(self.path_http, "audio/mp3")
+        mc.block_until_active()
+        mc.pause() # Prepare audio
+        time.sleep(1) # Necessary sleep while audio prepares.
+
+        # Reset the volume that was previous set.
+        # Currently commented, see above comment.
+        #self.dev.set_volume(vol_prec) #setting volume to precedent value
+
+        mc.play() #play the mp3
+
+        # Wait for the item to be done.
+        while not mc.status.player_is_idle:
+           time.sleep(0.25)
+        mc.stop()
+
+    def setup(self, sound):
+
+        global error_count
+        old_count = error_count
+
+        if not CHROMECAST_IMPORT:
+            mod = 'pychromecast'
+            print_error('Could not import %s module. With %s: pip install --user %s' % (coloud_text(mod), colour_text('pip', COLOUR_BLUE), mod))
+
+        if not self.base_http:
+            print_error('No base HTTP path set for Google Home (%s environment variable)' % colour_text(self.ENV_BASE_HTTP))
+        elif not re.match(r'^https?://', self.base_http, re.IGNORECASE):
+            print_error('Invalid base HTTP path (%s environment variable): %s' % (colour_text(self.ENV_BASE_HTTP), colour_text(self.base_http)))
+
+        if not self.base_local:
+            print_error('No local audio directory set for Google Home (%s environment variable)' % colour_text(self.ENV_BASE_LOCAL))
+        elif not os.path.isdir(self.base_local):
+            print_error('No such local directory (%s environment variable): %s' % (colour_text(self.ENV_BASE_LOCAL), colour_text(self.base_local, COLOUR_GREEN)))
+
+        path_file = self.runner.get_sound_file(sound)
+        if not path_file:
+            # If we cannot find the sound file, then we do not have enough info to make a full URL.
+            print_error('Unable to find file for sound: %s' % colour_text(sound))
+
+        self.path_http = '%s/%s' % (self.base_http, re.sub(r'%s/*' % self.base_local, '', path_file))
+        '''
+            Idea: Could have the client making the request validate the URL
+                    by making a request of our own before we ask anything
+                    of the Google Home device. If it doesn't give a 200 status code,
+                    then it's not worth passing along.
+
+                    Could even go a step further and validate the content as an MP3.
+        '''
+
+        try:
+            self.dev = pychromecast.Chromecast(self.runner.audio_server)
+            self.dev.wait()
+        except pychromecast.error.ChromecastConnectionError as e:
+            print_error('Google Home Error: %s' % str(e))
+
+        # If there was an uptick in errors since we invoked this function,
+        #   then our status is not good.
+        return error_count == old_count
+
+
+class HandlerLocal(BaseHandler):
 
     CMD = 'mpg123'
-
-    def __init__(self, runner):
-        self.runner = runner
 
     def play(self, sound, count):
         if self.which(self.CMD) is None:
@@ -236,6 +357,8 @@ class Runner:
 
     def get_handler(self):
         if self.audio_server:
+            if os.environ.get('AUDIO_SERVER_TYPE') == 'google-home':
+                return HandlerGoogleHome(self)
             return HandlerAudioServer(self)
         return HandlerLocal(self)
 

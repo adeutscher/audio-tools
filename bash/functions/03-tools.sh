@@ -53,4 +53,14 @@ if [ -n "$audioToolsDir" ]; then
     notice "$(printf "Setting audio server address: ${Colour_NetworkAddress}%s${Colour_Off}:${Colour_NetworkAddress}%d${Colour_Off}" "${host}" "${port:-4321}")"
   }
 
+  audio-server-toggle-type(){
+    if [[ "${AUDIO_SERVER_TYPE}" == "google-home" ]]; then
+      export AUDIO_SERVER_TYPE="traditional"
+      notice "$(printf "Switching audio server type to ${Colour_Bold}traditional${Colour_Off} mode.")"
+    else
+      export AUDIO_SERVER_TYPE="google-home"
+      notice "$(printf "Switching audio server type to ${Colour_Bold}%s${Colour_Off} mode." "${AUDIO_SERVER_TYPE}")"
+    fi
+  }
+
 fi # end audioToolsDir check
