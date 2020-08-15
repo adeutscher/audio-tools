@@ -47,11 +47,42 @@ class SimpleHTTPVerboseReqeustHandler(common.CoreHttpServer):
     """
     audio_extensions = [ "mp3", "ogg", "wav" ]
 
+    def do_GET(self):
+
+        # Search pattern indicating a file request.
+        search_pattern = "^/audio/+"
+
+        path = getattr(self, common.ATTR_PATH, "/")
+
+        if path == "/":
+            # Main directory. Display soundboard.
+            return self.draw_soundboard()
+        elif path.lower() == "/favicon.ico":
+            return self.send_error(404, "File not found.")
+        elif re.match(search_pattern, path):
+            # Request for audio file.
+
+            # Strip out "/audio" from the path, and attempt to reach the path as a file relative to our target directory.
+            audio_path = os.path.realpath("%s/%s" % (common.get_target(), self.translate_path(re.sub(search_pattern, "", path), False)))
+
+            # If the requested file path does appear to be a sound file, then immediately 404 out.
+            # This script should not be used as an arbitrary file-sharing server.
+            # That's exactly what the verbose share script was made for.
+            # The file should be an existing audio file.
+            if not self.is_audio_file(audio_path) or not (os.path.exists(audio_path) and os.path.isfile(audio_path)):
+                return self.send_error(404, "File not found")
+
+            return self.serve_file(audio_path)
+
+        else:
+            # For any other path than '/audio', redirect back to '/'.
+            return self.send_redirect("/")
+
     def draw_soundboard(self):
         """Helper to produce a directory listing (absent index.html).
         Return value is either a file object, or None (indicating an
         error).  In either case, the headers are sent, making the
-        interface the same as for send_head().
+        interface the same as for do_GET().
         """
 
         target_dir = common.get_target()
@@ -164,45 +195,6 @@ class SimpleHTTPVerboseReqeustHandler(common.CoreHttpServer):
         ext = path.split(".")[-1].lower()
 
         return (ext in self.audio_extensions)
-
-    def send_head(self):
-        """
-        Common code for GET and HEAD commands.
-        This sends the response code and MIME headers.
-        Return value is either a file object (which has to be copied
-        to the outputfile by the caller unless the command was HEAD,
-        and must be closed by the caller under all circumstances), or
-        None, in which case the caller has nothing further to do.
-        """
-
-        # Search pattern indicating a file request.
-        search_pattern = "^/audio/+"
-
-        path = getattr(self, common.ATTR_PATH, "/")
-
-        if path == "/":
-            # Main directory. Display soundboard.
-            return self.draw_soundboard()
-        elif path.lower() == "/favicon.ico":
-            return self.send_error(404, "File not found.")
-        elif re.match(search_pattern, path):
-            # Request for audio file.
-
-            # Strip out "/audio" from the path, and attempt to reach the path as a file relative to our target directory.
-            audio_path = os.path.realpath("%s/%s" % (common.get_target(), self.translate_path(re.sub(search_pattern, "", path), False)))
-
-            # If the requested file path does appear to be a sound file, then immediately 404 out.
-            # This script should not be used as an arbitrary file-sharing server.
-            # That's exactly what the verbose share script was made for.
-            # The file should be an existing audio file.
-            if not self.is_audio_file(audio_path) or not (os.path.exists(audio_path) and os.path.isfile(audio_path)):
-                return self.send_error(404, "File not found")
-
-            return self.serve_file(audio_path)
-
-        else:
-            # For any other path than '/audio', redirect back to '/'.
-            return self.send_redirect("/")
 
 if __name__ == '__main__':
     common.args.process(sys.argv)
