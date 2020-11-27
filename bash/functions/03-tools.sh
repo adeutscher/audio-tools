@@ -63,4 +63,6 @@ if [ -n "$audioToolsDir" ]; then
     fi
   }
 
+  export AUDIO_SERVER_BASE_LOCAL="${audioToolsDir}/files"
+
 fi # end audioToolsDir check
