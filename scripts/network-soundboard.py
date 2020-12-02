@@ -20,7 +20,6 @@ import CoreHttpServer as common
 common.local_files.append(os.path.realpath(__file__))
 
 # Remove unused arguments
-del common.args.opts[common.OPT_TYPE_FLAG]["-P"]
 common.args.add_validator(common.validate_common_directory) # Validate directory.
 
 # Specific to browser sharer
