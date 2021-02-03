@@ -1,12 +1,13 @@
 
 # audio-tools
 
-This is a module for desktop systems dedicated to playing funny sounds
-  and other sound-related functions.
+This is a module compatible with my core-tools module system.
+It is intended for desktop systems dedicated to playing funny sounds and other sound-related functions.
 
-It is useful for either scripted or ad-hoc alerts, especially when
-  you need to be away from your machine or if you are working with
-  long-running jobs.
+These sounds are useful for either scripted or ad-hoc alerts, especially when one of the following is true:
+  * You need to be away from your machine.
+  * You want to receive notices from machines that are remote or without speakers.
+  * Reminders for long-running jobs.
 
 To play a sound, run the sound- script links in `bin/`:
 
@@ -48,6 +49,7 @@ The sound playing script responds to the following variables:
 
 | Variable       | Description                                                                                                                                                                                                                     |
 |----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `audioToolsDir` | Root directory of checkout. If no override is specified, then this is used as a basis for where to look for sound files.                                                                                                       |
 | `AUDIO_SERVER` | Server to target for remote sound playing.                                                                                                                                                                                      |
 | `AUDIO_PORT`   | Port to use for playing sounds on the remote server. Default: 4321                                                                                                                                                              |
 | `AUDIO_UDP`    | Set to a non-zero value to relay sound requests via UDP instead of the default of TCP. Using this mode, the sound script is unable to verify if a sound played successfully unless there was a fundamental error in targetting. |
